@@ -1,0 +1,86 @@
+version: "3.8"
+
+services:
+  db:
+    image: mysql:8.0
+    container_name: restaurant_db
+    restart: always
+    environment:
+      MYSQL_DATABASE: restaurant_db
+      MYSQL_ROOT_PASSWORD: root
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    ports:
+      - "3307:3306"
+
+  redis:
+    image: redis:alpine
+    container_name: restaurant_broker
+    restart: always
+    ports:
+      - "6379:6379"
+
+  order-service:
+    build: ./order-service
+    container_name: order_service
+    ports:
+      - "3001:3001"
+    depends_on:
+      - db
+      - redis
+    environment:
+      - PORT=3001
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=root
+      - DB_NAME=restaurant_db
+      - REDIS_URL=redis://redis:6379
+
+  kitchen-service:
+    build: ./kitchen-service
+    container_name: kitchen_service
+    ports:
+      - "3002:3002"
+    depends_on:
+      - redis
+      - db
+    environment:
+      - PORT=3002
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=root
+      - DB_NAME=restaurant_db
+      - REDIS_URL=redis://redis:6379
+      - WAREHOUSE_URL=http://warehouse-service:3003/inventory/request
+
+  warehouse-service:
+    build: ./warehouse-service
+    container_name: warehouse_service
+    ports:
+      - "3003:3003"
+    depends_on:
+      - db
+      - redis
+    environment:
+      - PORT=3003
+      - DB_HOST=db
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASSWORD=root
+      - DB_NAME=restaurant_db
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MARKET_API_URL=https://recruitment.alegra.com/api/farmers-market/buy
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_ORDER=http://localhost:3001
+      - VITE_API_KITCHEN=http://localhost:3002
+      - VITE_API_WAREHOUSE=http://localhost:3003
+    depends_on:
+      - order-service
