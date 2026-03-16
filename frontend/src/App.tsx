@@ -58,10 +58,11 @@ function App() {
         axios.get(`${API_KITCHEN}/recipes`),
         axios.get(`${API_WAREHOUSE}/inventory/history`),
       ]);
-      setOrders(resOrders.data);
-      setInventory(resInv.data);
-      setRecipes(resRecipes.data);
-      setPurchaseHistory(resHistory.data);
+
+      if (Array.isArray(resOrders.data)) setOrders(resOrders.data);
+      if (Array.isArray(resInv.data)) setInventory(resInv.data);
+      if (Array.isArray(resRecipes.data)) setRecipes(resRecipes.data);
+      if (Array.isArray(resHistory.data)) setPurchaseHistory(resHistory.data);
     } catch (err) {
       console.error("Error actualizando datos", err);
     }
