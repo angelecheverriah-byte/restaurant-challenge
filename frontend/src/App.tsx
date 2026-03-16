@@ -38,7 +38,6 @@ interface PurchaseHistory {
   purchased_at: string; // Sincronizado con tu DESCRIBE
 }
 
-// En el archivo del Frontend
 const API_ORDER = import.meta.env.VITE_API_ORDER || "http://localhost:3001";
 const API_KITCHEN = import.meta.env.VITE_API_KITCHEN || "http://localhost:3002";
 const API_WAREHOUSE =

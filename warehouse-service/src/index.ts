@@ -5,6 +5,7 @@ import axios from "axios";
 import dotenv from "dotenv";
 import { Queue, Worker, Job } from "bullmq";
 import IORedis from "ioredis";
+import { initializeWarehouseDB } from "./config/initDb";
 
 dotenv.config();
 
@@ -12,32 +13,32 @@ const app = express();
 app.use(express.json());
 app.use(cors());
 
+// --- CONFIGURACIÓN DE BASE DE DATOS ---
 const dbConfig = {
   host: process.env.DB_HOST || "localhost",
-  port: Number(process.env.DB_PORT) || 3307,
+  port: Number(process.env.DB_PORT) || 3306,
   user: process.env.DB_USER || "root",
   password: process.env.DB_PASSWORD || "root",
-  database: process.env.DB_NAME || "restaurant_db",
+  database: process.env.DB_NAME || "railway",
   charset: "utf8mb4",
 };
 
 const MARKET_API_URL = process.env.MARKET_API_URL || "";
 
-// --- CONFIGURACIÓN DE REDIS Y BULLMQ ---
+// --- CONFIGURACIÓN DE REDIS ---
 
-const redisConnection = new IORedis({
-  host: process.env.REDIS_HOST || "localhost",
-  port: Number(process.env.REDIS_PORT) || 6379,
-  maxRetriesPerRequest: null, // Necesario para BullMQ
-});
+const redisConnection = new IORedis(
+  process.env.REDIS_URL || "redis://localhost:6379",
+  {
+    maxRetriesPerRequest: null,
+  },
+);
 
-// Crear la cola de inventario
 const inventoryQueue = new Queue("inventory-requests", {
   connection: redisConnection as any,
 });
 
 // --- EL WORKER: PROCESADOR DE LA COLA ---
-// Este bloque es el que hace el trabajo pesado uno a uno
 const worker = new Worker(
   "inventory-requests",
   async (job: Job) => {
@@ -49,7 +50,6 @@ const worker = new Worker(
     try {
       connection = await mysql.createConnection(dbConfig);
 
-      // 1. Lógica de verificación y compra en plaza
       for (const [name, qtyRequired] of Object.entries(ingredients)) {
         let [rows]: any = await connection.execute(
           "SELECT quantity FROM inventory WHERE ingredient_name = ?",
@@ -86,7 +86,6 @@ const worker = new Worker(
         }
       }
 
-      // 2. Descontar ingredientes con protección (GREATEST asegura que no baje de 0)
       console.log(`📉 [Orden #${orderId}] Descontando ingredientes...`);
       for (const [name, qty] of Object.entries(ingredients)) {
         await connection.execute(
@@ -95,7 +94,6 @@ const worker = new Worker(
         );
       }
 
-      // 3. Finalizar Orden
       await connection.execute(
         'UPDATE orders SET recipe_name = ?, status = "finalizada" WHERE id = ?',
         [recipeName, orderId],
@@ -104,31 +102,26 @@ const worker = new Worker(
       console.log(`✅ [COLA] Orden #${orderId} finalizada exitosamente.`);
     } catch (error: any) {
       console.error(`❌ [COLA] Error en Job #${orderId}:`, error.message);
-      throw error; // BullMQ lo reintentará si hay error
+      throw error;
     } finally {
       if (connection) await connection.end();
     }
   },
   {
     connection: redisConnection as any,
-    concurrency: 1, // 🔥 ESTO GARANTIZA QUE SEA UNO POR UNO
+    concurrency: 1,
   },
 );
 
 // --- ENDPOINTS ---
-
-// Ahora este endpoint solo añade a la cola y responde "OK" rápido
 app.post("/inventory/request", async (req, res) => {
   const { orderId, recipeName, ingredients } = req.body;
-
   try {
     await inventoryQueue.add(`order-${orderId}`, {
       orderId,
       recipeName,
       ingredients,
     });
-
-    console.log(`📥 Orden #${orderId} recibida y puesta en cola.`);
     res.json({ status: "queued", message: "Orden en espera de ingredientes" });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
@@ -165,7 +158,26 @@ app.get("/inventory/history", async (req, res) => {
   }
 });
 
+// --- ARRANQUE SEGURO ---
 const PORT = process.env.PORT || 3003;
-app.listen(PORT, () =>
-  console.log(`📦 Bodega con Cola Redis en puerto ${PORT}`),
-);
+
+async function startServer() {
+  try {
+    // 1. Crear conexión temporal para inicializar la DB
+    const pool = mysql.createPool(dbConfig);
+
+    // 2. Ejecutar script de inicialización
+    await initializeWarehouseDB(pool);
+    await pool.end(); // Cerramos el pool de inicialización
+
+    // 3. Iniciar Express
+    app.listen(PORT, () => {
+      console.log(`📦 Bodega conectada y lista en puerto ${PORT}`);
+    });
+  } catch (error) {
+    console.error("❌ Fallo crítico al iniciar Bodega:", error);
+    process.exit(1);
+  }
+}
+
+startServer();
