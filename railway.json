@@ -1,0 +1,11 @@
+{
+  "$schema": "https://railway.app/standard-schema.json",
+  "build": {
+    "builder": "NIXPACKS"
+  },
+  "deploy": {
+    "port": 3003,
+    "healthcheckPath": "/inventory",
+    "restartPolicyType": "ON_FAILURE"
+  }
+}
