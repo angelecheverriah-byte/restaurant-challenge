@@ -11,7 +11,13 @@ dotenv.config();
 
 const app = express();
 app.use(express.json());
-app.use(cors());
+app.use(
+  cors({
+    origin: "*",
+    methods: ["GET", "POST", "PUT", "DELETE"],
+    allowedHeaders: ["Content-Type", "Authorization"],
+  }),
+);
 
 // --- CONFIGURACIÓN DE BASE DE DATOS ---
 const dbConfig = {
@@ -171,7 +177,7 @@ async function startServer() {
     await pool.end(); // Cerramos el pool de inicialización
 
     // 3. Iniciar Express
-    app.listen(PORT, () => {
+    app.listen(Number(PORT), "0.0.0.0", () => {
       console.log(`📦 Bodega conectada y lista en puerto ${PORT}`);
     });
   } catch (error) {
