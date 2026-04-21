@@ -89,7 +89,7 @@ async function startKitchen() {
 
         // 1. Actualizar estado a 'preparando'
         await connection.execute(
-          'UPDATE orders SET recipe_name = ?, status = "preparando" WHERE id = ?',
+          "UPDATE orders SET recipe_name = ?, status = 'preparando' WHERE id = ?",
           [randomRecipe.name, currentOrderId],
         );
 
