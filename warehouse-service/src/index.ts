@@ -27,6 +27,9 @@ const dbConfig = {
   password: process.env.DB_PASSWORD || "root",
   database: process.env.DB_NAME || "railway",
   charset: "utf8mb4",
+  ssl: {
+    rejectUnauthorized: false,
+  },
 };
 
 const MARKET_API_URL = process.env.MARKET_API_URL || "";

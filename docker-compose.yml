@@ -23,6 +23,7 @@ services:
   order-service:
     build: ./order-service
     container_name: order_service
+    restart: on-failure
     ports:
       - "3001:3001"
     depends_on:
@@ -58,6 +59,7 @@ services:
   warehouse-service:
     build: ./warehouse-service
     container_name: warehouse_service
+    restart: on-failure
     ports:
       - "3003:3003"
     depends_on:
@@ -72,6 +74,7 @@ services:
       - DB_NAME=restaurant_db
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - REDIS_URL=redis://redis:6379
       - MARKET_API_URL=https://recruitment.alegra.com/api/farmers-market/buy
 
   frontend:

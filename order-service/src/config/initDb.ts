@@ -12,7 +12,7 @@ export const initializeOrderDB = async (pool: Pool): Promise<void> => {
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             );
         `);
-    console.log("✅ Tabla 'orders' lista en Railway.");
+    console.log("✅ Tabla 'orders' lista.");
   } catch (error) {
     console.error("❌ Error inicializando la tabla de Órdenes:", error);
     throw error;
