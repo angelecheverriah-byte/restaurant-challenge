@@ -1,14 +1,6 @@
 import { useState, useEffect } from "react";
 import axios from "axios";
-import {
-  ShoppingCart,
-  ChefHat,
-  Package,
-  History,
-  PlusCircle,
-  Activity,
-  Box,
-} from "lucide-react";
+import { ChefHat, History, PlusCircle, Activity, Box } from "lucide-react";
 
 // --- INTERFACES ---
 interface Ingredient {
