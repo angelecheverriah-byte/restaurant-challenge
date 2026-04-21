@@ -107,8 +107,8 @@ const worker = new Worker(
       }
 
       await connection.execute(
-        'UPDATE orders SET recipe_name = ?, status = "finalizada" WHERE id = ?',
-        [recipeName, orderId],
+        "UPDATE orders SET recipe_name = ?, status = ? WHERE id = ?",
+        [recipeName, "finalizada", orderId],
       );
 
       console.log(`✅ [COLA] Orden #${orderId} finalizada exitosamente.`);
