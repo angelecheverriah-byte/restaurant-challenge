@@ -94,11 +94,14 @@ async function startKitchen() {
         );
 
         // 2. Avisar a la Bodega
-        const response = await axios.post(WAREHOUSE_URL, {
-          orderId: currentOrderId,
-          recipeName: randomRecipe.name,
-          ingredients: randomRecipe.ingredients,
-        });
+        const response = await axios.post(
+          `${process.env.WAREHOUSE_URL}/inventory/request`,
+          {
+            orderId: currentOrderId,
+            recipeName: randomRecipe.name,
+            ingredients: randomRecipe.ingredients,
+          },
+        );
 
         if (response.data.status === "queued") {
           console.log(`📡 Orden #${currentOrderId} en cola de bodega.`);
